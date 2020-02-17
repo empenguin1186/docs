@@ -1,0 +1,51 @@
+# Webサーバとサーブレットコンテナについて
+* Webサーバはクライアントからのリクエストを元にレスポンスを返すコンポーネントであり、
+　サーブレットコンテナはリクエストなどを起因に何かの処理を行うコンポーネントである。
+* WWebアプリケーションでは、Webサーバがクライアントからリクエストを受け取り、サーブレットコンテナがリクエストに対応する処理を実行し、
+　その結果をWebサーバに返してその後Webサーバがそれをクライアント側にレスポンスとして送信する
+* Webサーバとサーブレットコンテナはどちらもミドルウェアの一種である。OSの機能だけではあるアプリケーションを実行できないときに必要な機能を集約してまとめたもの。いわばOSとアプリケーションの仲介役みたいなものである。
+    参考文献：https://qiita.com/kamihork/items/49e2a363da7d840a4149
+
+# jettyとtomcat
+[トップJavaアプリケーションサーバー：Tomcat対Jetty対GlassFish対WildFly](https://stackify.com/tomcat-vs-jetty-vs-glassfish-vs-wildfly/)
+jettyとtomcatはどちらもWebサーバとサーブレットコンテナの2つのミドルウェアを有している。
+
+## jetty について
+- 公式の説明：https://www.eclipse.org/jetty/about.html
+- 高いスケーラビリティ（拡張可能性）と軽量で動くことがメリットとしてあげられる。
+
+## tomcat について
+- 公式の説明：https://tomcat.apache.org/
+Webサーバとサーブレットコンテナは以下の名称がある
+- Webサーバ：Coyote
+- サーブレットコンテナ：Catalina
+
+# nginxとapacheについて
+jettyと異なりどちらもWebサーバ単体の機能を有するミドルウェア。
+[ApacheとNginxについて比較 - Qiita|https://qiita.com/kamihork/items/49e2a363da7d840a4149]
+
+## Nginxについて
+- リバースプロキシ, ロードバランサの機能を有する
+    参考文献：[リバースプロキシって何？触りだけ学んだサーバー/インフラ入門 - Qiita|https://qiita.com/growsic/items/fead30272a5fa374ac7b]
+- イベント駆動のアーキテクチャを採用している。シングルスレッドでループを回しキューに溜まったイベントを処理していく方式である。プロセス数はCPUのコア数と同じ
+- 重い処理をnginxでさばこうとするとそれがボトルネックになりプロセスがブロックされてしまい処理性能が落ちる。
+
+## apacheについて
+- モジュールにより基本機能を拡張可能できるような設計となっている
+- マルチプロセスモデルのサーバである。プロセスの挙動は主に3つに分けることが可能
+    - prefork : 親プロセスが一つだけ存在し、リクエストがくるたびに親プロセスをforkした子プロセスを起動する。実際の通信は子プロセスが処理する。
+                リクエストがきてからforkするのでは効率が悪くなるため、あらかじめforkしておいた子プロセスをいくつか用意しておく。このことをpreforkと呼ぶ。
+                リクエストが多くなるとその分だけプロセスが存在することになりCPU負荷が増大する
+    - worker : マルチプロセスとマルチスレッドのハイブリッド方式。子プロセス一つ一つがマルチスレッドで動作し、1スレッドが1リクエストを処理する。
+              preforkほど複数のプロセスが生成されるわけではないためメモリの消費量を抑えることができる
+    - event: workerの一種。workerと異なりKeep-Aliveを専用のスレッドでで処理しメインスレッドは通信の処理を行う
+    参考文献：[マルチプロセッシングモジュール (MPM) - Apache HTTP サーバ バージョン 2.2](https://httpd.apache.org/docs/2.2/ja/mpm.html)
+
+# 結論
+- 重い処理が存在する場合はapache、軽量の処理を膨大な数さばく場合はNginxを選択するといい？
+
+【参考文献】
+* http://fujiike.hateblo.jp/entry/2015/08/20/170751
+* [超絶初心者のためのサーバとクライアントの話 - Qiita](https://qiita.com/shuntaro_tamura/items/ae55b99deb9e2a170754)
+* [プロセスとスレッドの違い - Wake up! Good night*|https://imokuri123.com/blog/2013/12/difference-between-process-and-thread.html]
+* [Apacheとnginxどちらを採用すべきかメリット・デメリット比較 - Qiita](https://qiita.com/pink/items/7709218310b5cf11eabe)
