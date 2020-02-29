@@ -51,6 +51,9 @@
 - [項目36 ビットフィールドの代わりに EnumSet を使う](#項目36-ビットフィールドの代わりに-enumset-を使う)
   - [問題1](#問題1-1)
   - [問題2](#問題2-1)
+- [項目37 序数インデックスの代わりに EnumMap を使う](#項目37-序数インデックスの代わりに-enummap-を使う)
+- [項目38 拡張可能な enum をインターフェースで模倣する](#項目38-拡張可能な-enum-をインターフェースで模倣する)
+- [項目39 命名パターンよりもアノテーションを選ぶ](#項目39-命名パターンよりもアノテーションを選ぶ)
 - [項目40 常に Override アノテーションを使う](#項目40-常に-override-アノテーションを使う)
   - [問題](#問題-10)
 - [項目41 型を定義するためにマーカーインターフェースを使う](#項目41-型を定義するためにマーカーインターフェースを使う)
@@ -1040,6 +1043,56 @@ public class Text {
 Effective Java 項目36 より
 
 </details>
+
+# 項目37 序数インデックスの代わりに EnumMap を使う
+
+- 配列やリストのインデックスとして enum.ordinal() の値を利用するのはやめる。なぜなら、その配列やリストを使用するクライアントが、使用する Enum の序数を知っておかなければならないため。Enum の多次元配列を実現したい場合は、EnumMap の使用を検討する。
+```java
+Map<Plant.LifeCycle, Set<Plant>> plantsByLifeCycle = new EnumMap<>(Plant.LifeCycle.class);
+```
+
+# 項目38 拡張可能な enum をインターフェースで模倣する
+- enum をそのまま拡張することはできないが、enum にインターフェースを実装させることにより、拡張が可能となる。<br>
+まずインターフェースを定義
+```java
+public interface Operation {
+    double apply(double x, double y)
+}
+```
+次に、そのインターフェースを実装したenumを定義する
+```java
+public enum BasicOperation implements Operation {
+    PLUS("+") {
+        public double apply(double x, double y) { return x + y;},
+    },
+    MINUS("-") {
+        public double apply(double x, double y) { return x - y;},
+    };
+
+    private final String symbol;
+
+    BasicOperation(String symbol) {
+        this.symbol = symbol;
+    }
+}
+```
+拡張したい場合は別のクラスを用意する
+```java
+public enum ExtendedOperation implements Operation {
+    EXP("^") {
+        public double apply(double x, double y) { return x + y;},
+    };
+
+    private final String symbol;
+
+    ExtendedOperation(String symbol) {
+        this.symbol = symbol;
+    }
+}
+```
+
+# 項目39 命名パターンよりもアノテーションを選ぶ
+- ヒューマンエラーを防ぐため、メソッド名やクラス名のパターンで処理のハンドリングを行うのではなく、マーカーアノテーションを使用してハンドリングを行う。(ex: JUnit は 4 以前のバージョンでは prefix が test であるメソッドのみテスト対象としていた。)
 
 # 項目40 常に Override アノテーションを使う
 
