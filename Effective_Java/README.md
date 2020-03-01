@@ -74,11 +74,15 @@
 - [項目50 必要な場合、防御的にコピーする](#項目50-必要な場合防御的にコピーする)
 - [項目51 メソッドのシグニチャを注意深く設計する](#項目51-メソッドのシグニチャを注意深く設計する)
   - [問題](#問題-14)
+- [項目52 オーバーロードを注意して使う](#項目52-オーバーロードを注意して使う)
+- [項目53 可変長引数を注意して使う](#項目53-可変長引数を注意して使う)
 - [項目54 null ではなく、空コレクションか空配列を返す。](#項目54-null-ではなく空コレクションか空配列を返す)
   - [問題](#問題-15)
-- [項目58 従来のforループよりもfor-each　ループを選ぶ](#項目58-従来のforループよりもfor-each　ループを選ぶ)
-  - [問題](#問題-16)
+- [項目55 オプショナルを注意して返す](#項目55-オプショナルを注意して返す)
+- [項目56 全ての公開API要素に対してドキュメントコメントを書く](#項目56-全ての公開api要素に対してドキュメントコメントを書く)
 - [項目57 ローカル変数のスコープを最小限にする](#項目57-ローカル変数のスコープを最小限にする)
+  - [問題](#問題-16)
+- [項目58 従来のforループよりもfor-each　ループを選ぶ](#項目58-従来のforループよりもfor-each　ループを選ぶ)
   - [問題](#問題-17)
 - [項目59 ライブラリを知り、ライブラリを使う](#項目59-ライブラリを知りライブラリを使う)
   - [問題](#問題-18)
@@ -1502,6 +1506,23 @@ try (Stream<String> words = new Scanner(file).tokens()) {
 Effective Java 項目51 より
 </details>
 
+# 項目52 オーバーロードを注意して使う
+- Java にはメソッドやコンストラクタのオーバーロード機能が存在するが、必ずしもオーバーロードを使用すべきではない。例えば、引数の数が同じであるメソッドをオーバーロードする場合、各位置の引数のペアが Collection と List のように互換性を持っていた場合、クライアントが呼ぶメソッドはどちらになるかはコンパイル時に決定され、意図した挙動とならない可能性がある。これを避けるにはメソッドの場合は違うメソッド名を使用する。コンストラクタの場合は名前を変更することができないので、static Factory メソッドを使用する。
+
+# 項目53 可変長引数を注意して使う
+- メソッドに可変長引数を設ける場合は以下のように宣言する。
+```java
+static int min(int... arg) {
+    // ...
+}
+```
+しかし上記の実装だと、引数が１つも存在しない場合は実行時に例外がスローされる。最低でも1つの引数をもつことを保証したい場合、以下のようにメソッドを宣言する。
+```java
+static int min(int firstArg, int... remainingArg) {
+    // ...
+}
+```
+
 # 項目54 null ではなく、空コレクションか空配列を返す。
 コレクションや配列を返すメソッドで処理の結果 null を返す可能性のあるメソッドを実装すると、呼び出し側で null チェックを行う必要があり、メソッドが扱いづらくなる。したがって空のコレクションや空の配列を返すのが望ましい。
 
@@ -1530,62 +1551,23 @@ Effective Java 項目54 より
 
 </details>
 
-# 項目58 従来のforループよりもfor-each　ループを選ぶ
-
-例えば6×6通りの出力をしたい時、以下のようなコードを実装したとする
+# 項目55 オプショナルを注意して返す
+- メソッドがある特定の状況で値を返さないようにするためには、実装方法として３つ存在する。<br>
+1. null を返す<br>
+2. 例外をスローする<br>
+3. Optional を返す<br>
+- Optional において、値が空の状態はその値が null であることと同等である。Optional を返すようにすると、空の場合の処理をチェインで定義することができる。
 ```java
-enum Face {ONE, TWO, THREE, FOUR, FIVE, SIX}
+// 代わりの値を代入
+String lastWordInLexicon = max(words).orElse("No words ...");
 
-public static void main(String[] args) throws InterruptedException {
-    Collection<Face> faces = EnumSet.allOf(Face.class);
-    for (Iterator<Face> i = faces.iterator(); i.hasNext();)
-        for (Iterator<Face> j = faces.iterator(); j.hasNext();)
-            System.out.println(i.next() + " " + j.next());
-}
+// 代わりに例外をスロー
+String lastWordInLexicon = max(words).ElseThrow(Exception::new);
 ```
-この出力結果は以下の通りである。
-```
-ONE ONE
-TWO TWO
-THREE THREE
-FOUR FOUR
-FIVE FIVE
-SIX SIX
-```
-内部のループで外部のCollection の　next　が呼ばれているため、36通りの出力はされず、６通りで打ち止めとなる。for-each　を使用するとそういった自体を回避することができる。
+- Optional を使用するケースは、何かの処理が場合によっては何も返さないことがある時に、クライアント側でそれに対する処理を実装する場合にとどめておく。
 
-```java
-enum Face {ONE, TWO, THREE, FOUR, FIVE, SIX}
-
-public static void main(String[] args) throws InterruptedException {
-    Collection<Face> faces = EnumSet.allOf(Face.class);
-    for (Face face : faces) {
-        for (Face face1 : faces) {
-            System.out.println(face + " " + face1);
-        }
-    }
-}
-```
-
-## 問題
-6×6通りの出力をしたいため、以下のようなコードを実装したが、６通りの出力しかされなかった。その理由と改善方法を述べよ。
-
-```java
-enum Face {ONE, TWO, THREE, FOUR, FIVE, SIX}
-
-public static void main(String[] args) throws InterruptedException {
-    Collection<Face> faces = EnumSet.allOf(Face.class);
-    for (Iterator<Face> i = faces.iterator(); i.hasNext();)
-        for (Iterator<Face> j = faces.iterator(); j.hasNext();)
-            System.out.println(i.next() + " " + j.next());
-}
-```
-
-<details>
-<summary>解答</summary>
-外部のイテレータを内部で呼び出しているから６通りしか出力されなかった。改善案としてはfor-each　を使用する。  
-Effective Java 項目59 より
-</details>
+# 項目56 全ての公開API要素に対してドキュメントコメントを書く
+- APIを文書化する場合にはドキュメンテーションコメントを使用する。ドキュメンテーションコメント内ではHTMLを使用することができ、メタ文字はエスケープしなければならない。
 
 # 項目57 ローカル変数のスコープを最小限にする
 コードの可読性と保守性が向上させ、誤りの可能性を減らすために、ローカル変数は必要になるタイミングで宣言することが望ましい。  
@@ -1669,6 +1651,62 @@ Effective Java 項目57 より
 
 </details>
 
+# 項目58 従来のforループよりもfor-each　ループを選ぶ
+
+例えば6×6通りの出力をしたい時、以下のようなコードを実装したとする
+```java
+enum Face {ONE, TWO, THREE, FOUR, FIVE, SIX}
+
+public static void main(String[] args) throws InterruptedException {
+    Collection<Face> faces = EnumSet.allOf(Face.class);
+    for (Iterator<Face> i = faces.iterator(); i.hasNext();)
+        for (Iterator<Face> j = faces.iterator(); j.hasNext();)
+            System.out.println(i.next() + " " + j.next());
+}
+```
+この出力結果は以下の通りである。
+```
+ONE ONE
+TWO TWO
+THREE THREE
+FOUR FOUR
+FIVE FIVE
+SIX SIX
+```
+内部のループで外部のCollection の　next　が呼ばれているため、36通りの出力はされず、６通りで打ち止めとなる。for-each　を使用するとそういった自体を回避することができる。
+
+```java
+enum Face {ONE, TWO, THREE, FOUR, FIVE, SIX}
+
+public static void main(String[] args) throws InterruptedException {
+    Collection<Face> faces = EnumSet.allOf(Face.class);
+    for (Face face : faces) {
+        for (Face face1 : faces) {
+            System.out.println(face + " " + face1);
+        }
+    }
+}
+```
+
+## 問題
+6×6通りの出力をしたいため、以下のようなコードを実装したが、６通りの出力しかされなかった。その理由と改善方法を述べよ。
+
+```java
+enum Face {ONE, TWO, THREE, FOUR, FIVE, SIX}
+
+public static void main(String[] args) throws InterruptedException {
+    Collection<Face> faces = EnumSet.allOf(Face.class);
+    for (Iterator<Face> i = faces.iterator(); i.hasNext();)
+        for (Iterator<Face> j = faces.iterator(); j.hasNext();)
+            System.out.println(i.next() + " " + j.next());
+}
+```
+
+<details>
+<summary>解答</summary>
+外部のイテレータを内部で呼び出しているから６通りしか出力されなかった。改善案としてはfor-each　を使用する。  
+Effective Java 項目59 より
+</details>
 
 # 項目59 ライブラリを知り、ライブラリを使う
 
