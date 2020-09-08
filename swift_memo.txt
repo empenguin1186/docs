@@ -1,0 +1,19 @@
+## Implement Edit and Delete Behavior
+  <Goal>
+    1) Differentiate between push and modal navigation
+    2) Dismiss view controllers based on their presentation style
+    3) Use segue identifiers to determine which segue is occurring
+    4) Enable a table view controller’s editing mode
+
+# Enable Editing of Existing Meals
+  segueはnavigation stackにview controller をプッシュする
+　どのsegueがトリガーされたかを特定するためにprepareメソッドを定義する
+　新規作成と更新は似たような処理なので同じメソッド内で条件分岐を使用してそれぞれのケースに対応する
+　現状、新規作成した後に料理一覧画面に戻る時にはunwindToMealListが呼ばれる
+  キャンセルボタンも表示されているビューコントローラによって有効になっていない時がある
+	
+## Persist Data
+  <Goal>
+    1) Create a structure to store string constants
+    2) Understand the difference between static properties and instance properties
+    3) Use the NSCoding protocol to read and write data
