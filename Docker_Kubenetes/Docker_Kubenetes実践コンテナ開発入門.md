@@ -1,35 +1,39 @@
 <!-- TOC -->
 
 - [Docker](#docker)
-    - [Docker とは](#docker-とは)
-    - [仮想コンテナ技術](#仮想コンテナ技術)
-    - [Docker の利点](#docker-の利点)
-    - [チュートリアル](#チュートリアル)
-    - [Docker を使用する意義](#docker-を使用する意義)
-        - [Infrastructure as code と Immutable Infrastructure](#infrastructure-as-code-と-immutable-infrastructure)
-    - [Docker Compose](#docker-compose)
-    - [Docker Swarm](#docker-swarm)
-    - [Dockerfile について](#dockerfile-について)
-    - [Docker ビルド](#docker-ビルド)
-    - [Docker 起動 & 停止 & 再起動 & 破棄](#docker-起動--停止--再起動--破棄)
-    - [ポートフォワーディング](#ポートフォワーディング)
-    - [名前付きコンテナ](#名前付きコンテナ)
-    - [よく使うコマンドオプション](#よく使うコマンドオプション)
-    - [起動しているコンテナに対して実行できるコマンド](#起動しているコンテナに対して実行できるコマンド)
-        - [exec](#exec)
-        - [cp](#cp)
-    - [使用していないコンテナ、イメージの一括破棄](#使用していないコンテナイメージの一括破棄)
+  - [Docker とは](#docker-とは)
+  - [仮想コンテナ技術](#仮想コンテナ技術)
+  - [Docker の利点](#docker-の利点)
+  - [チュートリアル](#チュートリアル)
+  - [Docker を使用する意義](#docker-を使用する意義)
+    - [Infrastructure as code と Immutable Infrastructure](#infrastructure-as-code-と-immutable-infrastructure)
+  - [Docker Compose](#docker-compose)
+  - [Docker Swarm](#docker-swarm)
+  - [Dockerfile について](#dockerfile-について)
+  - [Docker ビルド](#docker-ビルド)
+  - [Docker 起動 & 停止 & 再起動 & 破棄](#docker-起動--停止--再起動--破棄)
+  - [ポートフォワーディング](#ポートフォワーディング)
+  - [名前付きコンテナ](#名前付きコンテナ)
+  - [よく使うコマンドオプション](#よく使うコマンドオプション)
+  - [起動しているコンテナに対して実行できるコマンド](#起動しているコンテナに対して実行できるコマンド)
+    - [exec](#exec)
+    - [cp](#cp)
+  - [使用していないコンテナ、イメージの一括破棄](#使用していないコンテナイメージの一括破棄)
 - [Kubernetes](#kubernetes)
-    - [Kubernetes の概念](#kubernetes-の概念)
-    - [KubernetesクラスタとNode](#kubernetesクラスタとnode)
-        - [用語整理](#用語整理)
-        - [Kubernetesクラスタ](#kubernetesクラスタ)
-        - [Node](#node)
-        - [Masterサーバにデプロイされる管理コンポーネント](#masterサーバにデプロイされる管理コンポーネント)
-    - [Namespace](#namespace)
-    - [Pod](#pod)
-    - [ReplicaSet](#replicaset)
-    - [Deployment](#deployment)
+  - [Kubernetes の概念](#kubernetes-の概念)
+  - [KubernetesクラスタとNode](#kubernetesクラスタとnode)
+    - [用語整理](#用語整理)
+    - [Kubernetesクラスタ](#kubernetesクラスタ)
+    - [Node](#node)
+    - [Masterサーバにデプロイされる管理コンポーネント](#masterサーバにデプロイされる管理コンポーネント)
+  - [Namespace](#namespace)
+  - [Pod](#pod)
+  - [ReplicaSet](#replicaset)
+  - [Deployment](#deployment)
+- [Service について](#service-について)
+  - [Cluster IP Service](#cluster-ip-service)
+  - [NodePort Service](#nodeport-service)
+  - [ExternalName Service](#externalname-service)
 
 <!-- /TOC -->
 
@@ -455,3 +459,15 @@ Deployment削除
 ```
 kubectl delete -f simple-deployment.yaml
 ```
+
+# Service について
+
+## Cluster IP Service
+- 内部IPアドレスに公開できるService。コンテナ間の通信を行いたい場合はこれを使用。
+
+## NodePort Service
+- 外部に公開できるサービス。クライアントはポートを指定してリクエストすることでクラスタ内部にアクセすることが可能。
+- NodePort Service と Ingress の違いは、NodePort Service はポートを指定してリクエストのルーティングを行うL4レベルの制御しかできないのに対し、Ingress はパスによる制御などの L7レベルのルーティングが可能である点である。
+
+## ExternalName Service
+- Kubernetesクラスタ内のコンテナが外部に通信する際に、ホストを解決する際に使用されるService。例えば、内部では gihyo というドメインに対して gihyo.jp というドメインを返す ExternalName Service が存在した場合、コンテナはホストに gihyo と指定するだけで gihyo.jp にリクエストを行うことができる。

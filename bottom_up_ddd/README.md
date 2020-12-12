@@ -87,6 +87,18 @@
             - [物流拠点の振る舞いとして定義する](#物流拠点の振る舞いとして定義する)
             - [輸送ドメインサービスを定義する](#輸送ドメインサービスを定義する)
         - [まとめ](#まとめ-2)
+    - [アプリケーションサービス](#アプリケーションサービス)
+        - [アプリケーションサービスとは](#アプリケーションサービスとは-1)
+        - [アプリケーションサービスの実装例](#アプリケーションサービスの実装例)
+            - [ドメインオブジェクトの定義](#ドメインオブジェクトの定義)
+            - [リポジトリの定義、ドメインサービスの定義](#リポジトリの定義ドメインサービスの定義)
+            - [ユーザ登録処理を作成する](#ユーザ登録処理を作成する)
+            - [ユーザ情報取得処理を作成する](#ユーザ情報取得処理を作成する)
+            - [ユーザ情報更新処理を作成する](#ユーザ情報更新処理を作成する)
+            - [ユーザ退会を作成する](#ユーザ退会を作成する)
+        - [アプリケーションサービスと凝集度](#アプリケーションサービスと凝集度)
+        - [サービスとは何か](#サービスとは何か)
+        - [まとめ](#まとめ-3)
 
 <!-- /TOC -->
 
@@ -804,7 +816,7 @@ class User {
 ### まとめ
 - 同値性ではなく、同一性によって識別されるオブジェクトをエンティティと呼ぶ。エンティティの特徴は以下の３つ。
   - 可変である
-  - 同じ属性であっても区別される
+  - 同じ属性であって�����������������������区別される
   - 同一性によって識別される
 - あるドメインモデルを値オブジェクトとして実装するか、エンティティとして実装するかは、「ライフサイクルをもち、連続性が存在するかどうか」で判断すると良い。
 - 構築するシステムによっては値オブジェクトにするかエンティティにするかは検討すべきである。
@@ -980,3 +992,335 @@ class TransportService {
 - クライアントの代わりにドメインの知識を実行するオブジェクトをドメインサービスと呼ぶ。
 - 値オブジェクトやエンティティで実装すると不自然になるものはドメインサービスに実装すると自然な実装となる。
 - ドメインモデル貧血症を引き起こすのを防ぐために、何でもかんでもドメインサービスでドメインロジックを実装することは避け、必要な場合にのみドメインサービスに実装することが望ましい。
+
+## アプリケーションサービス
+
+### アプリケーションサービスとは
+- ドメイン駆動設計の実装パターンにおいて、サービスはドメインサービスとアプリケーションサービスの2つが存在するということを述べた。ドメインサービスはドメインオブジェクトであるのに対し、アプリケーションサービスはアプリケーションとしての機能を定義するオブジェクトである。例えば、あるシステムソフトウェアにおけるユーザの入会や退会処理といったユースケースをアプリケーションサービスで実装することとなる。その特性ゆえアプリケーションサービスは様々なドメインオブジェクトを駆使してそれらの振る舞いを実行することによりアプリケーションに必要な機能を組み立てる調整役のような役割を担う。
+
+### アプリケーションサービスの実装例
+- ユーザのCRUD操作を例にとってアプリケーションサービスの実装例を紹介しよう。
+
+#### ドメインオブジェクトの定義
+- まずアプリケーションサービスで使用するドメインオブジェクトを定義する。今回はユーザID, ユーザ名を表す値オブジェクトである UserId,UserNameクラス、そしてユーザを表すエンティティであるUserクラスを定義する。
+
+```java
+class UserId {
+    private String value;
+
+    public UserId(String value) {
+        if (value == null) throw new IllegalArgumentException("ユーザID が null です。");
+
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
+}
+
+class UserName {
+    private String value;
+
+    public UserName(String value) {
+        if (value == null || value.length() < 3) throw new IllegalArgumentException("ユーザ名 が 不正です。");
+
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
+}
+
+class User {
+    private UserId userId;
+    private UserName userName;
+
+    public User(UserId userId, UserName userName) {
+        this.userId = userId;
+        this.userName = userName;
+    }
+
+    public UserId getUserId() {
+        return userId;
+    }
+
+    public UserName getUserName() {
+        return userName;
+    }
+
+    public void changeUserName(UserName userName) {
+        this.userName = userName;
+    }
+}
+```
+
+#### リポジトリの定義、ドメインサービスの定義
+
+- 次にアプリケーションサービスで使用するリポジトリとドメインサービスを定義する。
+```java
+// リポジトリ
+interface UserRepository {
+
+    public void insert(User user);
+
+    public User find(String userId);
+
+    public void update(User user);
+
+    public void delete(User user);
+}
+
+// ドメインサービス
+class UserDomainService {
+    private UserRepository userRepository;
+
+    public boolean isExists(User user) {
+        User duplicatedUser = userRepository.find(user.getUserId().getValue());
+        return duplicatedUser != null;
+    }
+}
+```
+
+#### ユーザ登録処理を作成する
+
+- createUser メソッドはUserオブジェクトを作成したのち、重複判定を UserDomainService に依頼し、重複していない場合は UserRepository を使用してデータを登録している。
+```java
+// アプリケーションサービス
+class UserApplicationService {
+
+    private UserDomainService userDomainService;
+    private UserRepository userRepository;
+
+    public UserApplicationService(UserDomainService userService, UserRepository userRepository) {
+        this.userDomainService = userService;
+        this.userRepository = userRepository;
+    }
+
+    // ユーザ登録処理
+    public void createUser(String userId, String userName) throws Exception {
+        UserId newUserId = new UserId(userId);
+        UserName newUserName = new UserName(userName);
+
+        User newUser = new User(newUserId, newUserName);
+        if (this.userDomainService.isExists(newUser)) {
+            throw new Exception("すでにユーザが存在しています");
+        }
+
+        userRepository.insert(newUser);
+    }
+}
+```
+
+#### ユーザ情報取得処理を作成する
+
+- ユーザ取得処理は以下のような実装が考えられるだろう。
+```java
+
+class UserApplicationService {
+
+    ...
+
+    // ユーザ情報取得
+    public User readUser(String userId) throws Exception {
+        User user = userRepository.find(userId);
+
+        if (user == null) {
+            throw new Exception("そのようなユーザは存在しません。");
+        }
+
+        return user;
+    }
+
+}
+```
+- しかし、ここで注目したいのはreadUserメソッドがUserオブジェクトを返しているという点である。このままだと、もしUserオブジェクトにドメインロジックが定義されていた場合に、このメソッドを呼び出すクライアントのクラスもドメインロジックの実行ができてしまい。ドメインロジックの実行が複数のクラスで行われてしまうことになる。極力ドメインロジックの実行はアプリケーションサービスに集約させたいので、クライアントにはドメインオブジェクトではなく、データ転送用オブジェクト(DTO: Data Transfer Object)にデータを移し変えて返却する。
+
+```java
+
+// データ転送用オブジェクト
+class UserData {
+
+    private String userId;
+    private String userName;
+
+    // User クラスを引数にすることで、フィールドか追加されてもコンストラクタのみ修正すれば良くなる
+    public UserData(User user) {
+        this.userId = user.getUserId().getValue();
+        this.userName = user.getUserName().getValue();
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+}
+
+class UserApplicationService {
+
+    ...
+
+    public UserData readUser(String userId) throws Exception {
+        User user = userRepository.find(userId);
+
+        if (user == null) {
+            throw new Exception("そのようなユーザは存在しません。");
+        }
+
+        return new UserData(user);
+    }
+}
+```
+- UserDataクラスはただ値を保持し、その値を参照されることだけを目的としているオブジェクトなので、クライアント側はドメインロジックの実行は不可能となる。これによりドメインロジックの実行はアプリケーションサービスに限定されることとなる。
+
+#### ユーザ情報更新処理を作成する
+
+- 更新は以下のような実装となる。
+```java
+class UserApplicationService {
+
+    ...
+
+    public void updateUser(UserData userData) throws Exception {
+
+        User user = userRepository.find(userData.getUserId());
+        if (user == null) {
+            throw new Exception("そのようなユーザは存在しません。");
+        }
+
+        UserName userName = new UserName(userData.getUserName());
+        user.changeUserName(userName);
+
+        userRepository.update(user);
+    }
+
+}
+```
+
+#### ユーザ退会を作成する
+
+- 退会処理は以下のようになる。
+```java
+class UserApplicationService {
+
+    ...
+
+    public void deleteUser(UserData userData) throws Exception {
+        User user = userRepository.find(userData.getUserId());
+
+        // 対象が見つからないため成功とする
+        if (user == null) {
+            return;
+        }
+
+        userRepository.delete(user);
+    }
+
+}
+```
+
+### アプリケーションサービスと凝集度
+
+- プログラムには凝集度という概念が存在する。一般的に凝集度が高いクラスはシステムの処理における責任範囲が集中していて、そのクラスがどのような処理を担当しているのかというのが明確であるという特徴があげられる。したがって堅牢性や可読性などの観点からクラスの凝集度をできるだけ高くするのが望ましい。
+- では凝集度とはどのように計算できるのだろうか？凝集度をはかる指標としてLCOM(Lack of Cohesion in Methods)という計算式が存在する。具体的な計算方法は省略するが、LCOMはクラスにおける全てのフィールドは全てのメソッドで使用されるべき、という思想に基づいている。したがってLCOMはフィールドとそれが利用されているメソッドがどれだけ存在するかで計算される。
+- 凝集度が低いクラスを見てみよう。以下のようなクラスが凝集度が低いクラスである。
+
+```java
+public class LowCohesion {
+    private String value1;
+    private String value2;
+    private String value3;
+    private String value4;
+    
+    public String meghodA() {
+        return value1 + value2;
+    }
+
+    public String meghodB() {
+        return value3 + value4;
+    }
+}
+```
+- value1とvalue2はmethodAでのみ、value3とvalue4はmethodBでのみ使用されているので、このクラスは低凝集である。このクラスは2つのクラスに分離することで凝集度を高くすることができる。
+
+```java
+public class HighCohesionA {
+    private String value1;
+    private String value2;
+
+    public String meghodA() {
+        return value1 + value2;
+    }
+}
+
+public class HighCohesionB {
+    private String value3;
+    private String value4;
+
+    public String meghodB() {
+        return value3 + value4;
+    }
+}
+```
+- 先ほどのCRUDアプリケーションも凝集度が高められないかどうかを見てみよう。UserDomainSerivce はユーザ登録処理のみでしか使用されていないので、アプリケーションサービスは複数のクラスに分離することができるだろう。
+
+```java
+class UserRegisterService {
+
+    private UserDomainService userDomainService;
+    private UserRepository userRepository;
+
+    public UserApplicationService(UserDomainService userService, UserRepository userRepository) {
+        this.userDomainService = userService;
+        this.userRepository = userRepository;
+    }
+
+    // ユーザ登録処理
+    public void createUser(String userId, String userName) throws Exception {
+        UserId newUserId = new UserId(userId);
+        UserName newUserName = new UserName(userName);
+
+        User newUser = new User(newUserId, newUserName);
+        if (this.userDomainService.isExists(newUser)) {
+            throw new Exception("すでにユーザが存在しています");
+        }
+
+        userRepository.insert(newUser);
+    }
+}
+
+class UserDeleteService {
+
+    private UserRepository userRepository;
+
+    public UserApplicationService(UserDomainService userService, UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public void deleteUser(UserData userData) throws Exception {
+        User user = userRepository.find(userData.getUserId());
+
+        // 対象が見つからないため成功とする
+        if (user == null) {
+            return;
+        }
+
+        userRepository.delete(user);
+    }
+
+}
+```
+- アプリケーションサービスを分離すると返ってクラス数が増えて管理が面倒になることも考えられるが、ユーザの操作処理を担当するアプリケーションサービスクラスは同じパッケージに含めるようにすることでこの課題は幾分か解消することができる。
+
+### サービスについて
+- ドメイン駆動設計にはドメインサービスとアプリケーションサービスの2種類のサービスが存在するが、両者の使い分けは目的に応じて行う。ドメインロジックの実装に関してはドメインサービス、アプリケーションにおける機能の実装に関してはアプリケーションサービスで行う。
+
+### まとめ
+- アプリケーションサービスはアプリケーションのユースケースをドメインオブジェクトの操作を行うことで実現するクラスである。
+- アプリケーションサービスにロジックを実装するのはドメインの知識が複数のオブジェクトに実装されることになるので行わないようにする。
+
+## 
