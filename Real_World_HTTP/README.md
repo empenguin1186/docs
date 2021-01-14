@@ -160,8 +160,21 @@ Cookie: LAST_ACCESS_TIME=12:04
 # 6章
 
 # 7章 HTTP/2 のセマンティクス
-- HTTP/2
-- Fetch API
+- HTTP2について
+  - 処理が高速
+    - TCP接続の内部にストリームという仮装のTCPソケットを作って通信を行うことができ、並列リクエストが可能となる
+    - テキストベースの通信であったHTTP1.1とは異なり、HTTP2ではバイナリベースでの通信に変わったため高速な処理が可能となった(HTTP1.1はテキストのパース処理などの逐次処理が発生するためその分パフォーマンスはおとる)。
+  - ヘッダとボディしか存在しない
+    - パスやメソッドなどもヘッダに設定される
+  - サーバプッシュ
+    - サーバ側が優先度の高いコンテンツをクライアントが要求する前に送信することができる機能。クライアントは実際にそのコンテンツをリクエストするまでは、そのコンテンツを受信していることを検知できない。コンテンツはキャッシュとして格納される
+  - Fetch API
+    - XMLHttpRequestとは異なる点
+      - キャッシュの制御が可能
+      - リダイレクトの制御が可能
+      - Service Worker に対応している
+        - [サービスワーカー API - Web API | MDN](https://developer.mozilla.org/ja/docs/Web/API/Service_Worker_API)
+        - [Service Worker の紹介  |  Web Fundamentals  |  Google Developers](https://developers.google.com/web/fundamentals/primers/service-workers/)
 - Server-Sent Events
 - WebSocket
 - WebRTC
