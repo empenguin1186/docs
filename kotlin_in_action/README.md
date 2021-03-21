@@ -1529,6 +1529,9 @@ fun lookForAlice(people: List<Person>) {
 
 ## ジェネリクス
 - 
-
+  
 ## companion 修飾子はどんな役割か
 −　インスタンスを生成しなくても呼び出しが可能となる修飾子。Javaにおけるstatic修飾子に近い。
+
+## java.lang.Object は Kotlinではどう表現する？
+- Any で代用可能
