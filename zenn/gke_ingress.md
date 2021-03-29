@@ -1,7 +1,7 @@
 # 背景
 - GKE で Ingress と Service をデプロイしたところ、コンソールに以下のようなエラーが出力された。
 ![](https://storage.googleapis.com/zenn-user-upload/98l5e789yb1e2z590ninuq96er15)
-- 今まで Ingress と Service は同じ Kubernetes クラスター内に存在するものだと思っていたので Service の type は ClusterIP としていたがその前提が間違っていたらしい。
+- 今まで Ingress と Service は同じ Kubernetes クラスター内に存在するものだと思っていたので Service の type は ClusterIP としていたがその認識が間違っていたらしい。
 
 # 調査
 - [Google Cloud のドキュメント](https://cloud.google.com/kubernetes-engine/docs/concepts/network-overview?hl=ja) を確認すると、以下のような記述がされている。
