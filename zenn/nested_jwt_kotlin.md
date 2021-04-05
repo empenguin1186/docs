@@ -1,5 +1,5 @@
 # はじめに
-- Kotlin で Nester JWT を生成する処理を実装したので紹介します。
+- Kotlin で Nested JWT を生成する処理を実装したので紹介します。
 
 # Nested JWT について
 - Nested JWT についてご存じない方もいると思いますので、まずは Nested JWT について基本となる JWT から順を追って説明しようと思います。
