@@ -355,7 +355,7 @@ String fullName = "Yahoo Taro";
 
 - この fullName はそのまま使用されることもあるし、姓だけ使用する場合も考えられるだろう。そうなった場合には以下のような処理を実装する必要がある。
 ```java
-String[] tokens = full.split( " ");
+String[] tokens = full.split(" ");
 String lastName = tokens[0];  // Yahoo
 String firstName = tokens[1]; // Taro
 ```
