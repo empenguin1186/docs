@@ -54,7 +54,99 @@
 # SQL アンチパターン
 
 ## 8.
-- 同じテーブルに存在するデータを分割して管理したいケースが存在する。目的としては年度毎のデータを管理したいといったような、とある属性別にデータを管理したいという目的と、分割することによりクエリ実行のパフォーマンスを向上させる目的が考えられる。どちらに関しても SQL のパーティション機能を使用すると実現できる。パーティションには水平パーティションと垂直パーティションが存在し、水平パーティションはテーブル定義の際にどういった条件でどれくらいまでデータを分割するかという設定を行うことができる機能のことを指す。垂直パーティションは VARCHAR などの可変長のカラムを外部のテーブルで管理することによりパフォーマンスを向上させるテクニックのことである。* などで全カラム指定でデータを取得する場合に、VARCHAR のような可変長のカラムは取得するのに時間がかかるのでこういったテクニックが使用される。またパッケージインストーラなどのバイナリファイルは大きいサイズの可変長カラムで格納することになるので、同じテーブルで管理するとパフォーマンスが低下してしまうので、そういった場合は積極的に垂直パーティションを使用するのが望ましい。
+- 同じテーブルに存在するデータを分割して管理したいケースが存在する。目的としては年度毎のデータを管理したいといったような、とある属性別にデータを管理したいという目的と、分割することによりクエリ実行のパフォーマンスを向上させる目的が考えられる。どちらに関しても SQL のパーティション機能を使用すると実現できる。パーティションには水平パーティションと垂直パーティションが存在し、水平パーティションはテーブル定義の際にどういった条件でどれくらいまでデータを分割するかという設定を行うことができる機能のことを指す。垂直パーティションは VARCHAR などの可変長のカラムを外部のテーブルで管理することによりパフォーマンスを向上させるテクニックのことである。SELECT * などで全カラム指定でデータを取得する場合に、VARCHAR のような可変長のカラムは取得するのに時間がかかるのでこういったテクニックが使用される。またパッケージインストーラなどのバイナリファイルは大きいサイズの可変長カラムで格納することになるので、同じテーブルで管理するとパフォーマンスが低下してしまう。したがってそういった場合は積極的に垂直パーティションを使用するのが望ましい。
 
 ## 9. FLOAT ではなく、NUMERIC や DECIMAL を使用する
 - FLOAT を使用すると丸め誤差が発生してしまうので会計関連などの正確な計算には向かない。代わりに NUMERIC や DECIMAL を使用する。どちらも指定した精度の小数を格納することができる。NUMERICは(9,2)といったように引数を指定して使用する。最初の引数は精度を表し、何桁の数値を格納するかの設定を表す。9の場合は 123456789 は格納できるが 1234567890 は格納できない。2番目の引数はスケールと呼ばれ小数点以下に格納できる桁数を表す。2の場合は 1234567.89 は格納できるが 123456.789 は格納できない。なおスケールの桁数は精度に含まれる。
+
+## 10. サーティワンフレーバー
+
+- MySQL には ENUM という決まった値を格納できるデータ型が存在する。
+```sql
+mysql> use sample;
+Database changed
+mysql> create table Bugs (
+    -> status ENUM('NEW', 'IN PROGRESS', 'FIXED')
+    -> );
+Query OK, 0 rows affected (0.13 sec)
+
+mysql> INSERT INTO Bugs VALUES('NEW');
+Query OK, 1 row affected (0.08 sec)
+
+mysql> select * from Bugs;
++--------+
+| status |
++--------+
+| NEW    |
++--------+
+1 row in set (0.01 sec)
+```
+
+- 将来格納する値のバリエーションが増えることがないのならば ENUM を使用しても良いが、増えることが考えられるのならば ENUM の使用は避けた方が良い。理由の一つとしては値の一覧を取得する際には以下のように複雑なクエリを実行する必要がある。さらに値のみ取得できないのもデメリットの一つ。また Enum をソートする場合はアルファベット順などではなく登録順にソートされるので意図しない挙動になる可能性がある。
+```sql
+mysql> SELECT column_type FROM information_schema.columns WHERE table_schema = 'sample' AND table_name = 'Bugs' AND column_name = 'status';
++-----------------------------------+
+| COLUMN_TYPE                       |
++-----------------------------------+
+| enum('NEW','IN PROGRESS','FIXED') |
++-----------------------------------+
+1 row in set (0.09 sec)
+```
+
+- 決まった値を管理する場合は外部テーブルで定義すると柔軟な設計になる。
+```sql
+-- 決まった値を管理する BugStatus テーブルを作成する
+mysql> CREATE TABLE BugStatus (
+    -> status VARCHAR(20) PRIMARY KEY
+    -> );
+Query OK, 0 rows affected (0.65 sec)
+
+mysql> INSERT INTO BugStatus (status) VALUES ('NEW'), ('IN PROGRESS'), ('FIXED');
+Query OK, 3 rows affected (0.18 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+
+-- Bug テーブルを別途作成し、status は BugStatus の値を参照するようにする。また `ON UPDATE CASCADE` で BugStatus の更新を Bug テーブルに反映するようにする。
+mysql> CREATE TABLE Bugs (
+    -> status VARCHAR(20),
+    -> FOREIGN KEY (status) REFERENCES BugStatus(status) ON UPDATE CASCADE
+    -> );
+Query OK, 0 rows affected (0.71 sec)
+
+-- BugStatus に格納されているデータは Bug テーブルにも格納可能
+mysql> INSERT INTO Bugs (status) VALUES ('NEW'), ('IN PROGRESS'), ('FIXED');
+Query OK, 3 rows affected (0.04 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+-- BugStatus に格納されていないデータは Bug テーブルにも格納できない
+mysql> INSERT INTO Bugs (status) VALUES ('OLD');
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`sample`.`Bugs`, CONSTRAINT `Bugs_ibfk_1` FOREIGN KEY (`status`) REFERENCES `BugStatus` (`status`) ON UPDATE CASCADE)
+
+-- BugStatus が UPDATE されると Bug もそれに追従
+mysql> select * from BugStatus;
++-------------+
+| status      |
++-------------+
+| FIXED       |
+| IN PROGRESS |
+| NEW         |
++-------------+
+3 rows in set (0.00 sec)
+
+mysql> INSERT INTO Bugs (status) VALUES ('FIXED');
+Query OK, 1 row affected (0.07 sec)
+
+mysql> UPDATE BugStatus SET status = 'DONE' WHERE status = 'FIXED';
+Query OK, 1 row affected (0.09 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from BugStatus;
++-------------+
+| status      |
++-------------+
+| DONE        |
+| IN PROGRESS |
+| NEW         |
++-------------+
+3 rows in set (0.01 sec)
+```
