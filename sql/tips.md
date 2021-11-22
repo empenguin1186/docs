@@ -240,7 +240,7 @@ mysql> SELECT first_name || ' ' || middle_initial || ' ' || last_name As full_na
 |  加算  |  NULL + 1234  |  NULL  |  NULL に値の加算を行う場合、0として扱われず結果は NULL となる |
 |  文字連結  |  NULL + 'hoge'  |  NULL  |  NULL に文字を連結すると NULL になる  |
 
-このように NULL の場合は想定とは異なるクエリの実行結果を取得してしまうので、事前に NULL チェックを行って対処を行っていく必要がある。NULL チェックには `IS (NOT) NULL`, `IS (NOT) DISTINCT FROM` が使用できる。
+このように NULL の場合は想定とは異なるクエリの実行結果を取得してしまうので、事前に NULL チェックを行っていく必要がある。NULL チェックには `IS (NOT) NULL`, `IS (NOT) DISTINCT FROM` が使用できる。
 
 ```sql
 -- IS NULL
