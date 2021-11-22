@@ -196,3 +196,95 @@ mysql> CREATE TABLE Bugs(
 |  Test  |  修正したクエリのパフォーマンスをテストする。  |
 |  Optimize  |  データベースサーバのキャッシュメモリの最適化を行う。インデックスはコンパクトで使用頻度が高いデータなのでキャッシュに格納されやすい。データベースはキャッシュに割り当てるシステムメモリの量を設定することができるので適切なサイズに設定する。 |
 |  Rebuild  |  インデックスのメンテナンスを行う。長期にわたり更新や削除が行われると、インデックスが不均衡になってしまう。基本的にインデックスが均衡が取れている方が効率は良くなるので、定期的にインデックスのメンテナンスを行うことには一定の価値がある。 |
+
+## 13. フィア・オブ・ジ・アンノウン
+
+データに NULL が登録されている場合はクエリ実行時には予期せぬ実行結果を取得してしまうケースが存在する。例として、first_name と last_name を格納している Accounts テーブルに新しくミドルネームのイニシャルを格納する middle_initial 列を追加して、それぞれの値を結合してフルネームを取得するクエリを実行したとする。実行結果として middle_initial 列が NULL の場合は first_name と last_name を結合した文字列が取得できることを期待していたが、実際には以下のように NULL が取得されてしまった。
+
+```sql
+mysql> CREATE TABLE Accounts(account_id SERIAL PRIMARY KEY, first_name VARCHAR(10) NOT NULL, last_name VARCHAR(10) NOT NULL);
+mysql> INSERT INTO Accounts (first_name, last_name) VALUES ('John', 'Smith');
+Query OK, 1 row affected (0.13 sec)
+
+mysql> INSERT INTO Accounts (first_name, last_name) VALUES ('Tom', 'Cat');
+Query OK, 1 row affected (0.07 sec)
+
+mysql> ALTER TABLE Accounts ADD COLUMN middle_initial CHAR(2);
+Query OK, 0 rows affected (0.52 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql> SELECT * FROM Accounts;
++------------+------------+-----------+----------------+
+| account_id | first_name | last_name | middle_initial |
++------------+------------+-----------+----------------+
+|          1 | John       | Smith     | NULL           |
+|          2 | Tom        | Cat       | NULL           |
++------------+------------+-----------+----------------+
+2 rows in set (0.77 sec)
+
+mysql> SELECT first_name || ' ' || middle_initial || ' ' || last_name As full_name FROM Accounts;
++-----------+
+| full_name |
++-----------+
+|      NULL |
+|      NULL |
++-----------+
+2 rows in set, 8 warnings (0.19 sec)
+```
+
+上記の例を踏まえて、NULLのデータを扱う場合は注意点が存在する。ケース別の注意点を以下の表にまとめる。
+
+|  ケース  |  例  |  結果  |  説明  |
+|:--:|:---|:---|:---|
+|  比較  |  NULL = 0 |  NULL  |  NULL との比較結果は NULL  |
+|  加算  |  NULL + 1234  |  NULL  |  NULL に値の加算を行う場合、0として扱われず結果は NULL となる |
+|  文字連結  |  NULL + 'hoge'  |  NULL  |  NULL に文字を連結すると NULL になる  |
+
+このように NULL の場合は想定とは異なるクエリの実行結果を取得してしまうので、事前に NULL チェックを行って対処を行っていく必要がある。NULL チェックには `IS (NOT) NULL`, `IS (NOT) DISTINCT FROM` が使用できる。
+
+```sql
+-- IS NULL
+mysql> SELECT * FROM Accounts WHERE middle_initial IS NULL;
++------------+------------+-----------+----------------+
+| account_id | first_name | last_name | middle_initial |
++------------+------------+-----------+----------------+
+|          1 | John       | Smith     | NULL           |
+|          2 | Tom        | Cat       | NULL           |
++------------+------------+-----------+----------------+
+2 rows in set (0.01 sec)
+
+-- 以下の2つのクエリは等価
+mysql> SELECT * FROM Accounts WHERE middle_initial IS NULL OR middle_initial <> 'J.';
++------------+------------+-----------+----------------+
+| account_id | first_name | last_name | middle_initial |
++------------+------------+-----------+----------------+
+|          1 | John       | Smith     | NULL           |
+|          2 | Tom        | Cat       | NULL           |
++------------+------------+-----------+----------------+
+2 rows in set (0.07 sec)
+
+mysql> SELECT * FROM Accounts WHERE NOT (middle_initial <=> 'J.'); -- MySQL では IS NOT DISTINCT FROM と等価な演算子 <=> を提供している
++------------+------------+-----------+----------------+
+| account_id | first_name | last_name | middle_initial |
++------------+------------+-----------+----------------+
+|          1 | John       | Smith     | NULL           |
+|          2 | Tom        | Cat       | NULL           |
++------------+------------+-----------+----------------+
+2 rows in set (0.41 sec)
+```
+
+また、最初に紹介した例のように、middle_initial 列が NULL の場合は first_name と last_name を結合した文字列を取得するためには、COALESCE 関数を使用すると良い。
+
+```sql
+-- ' ' || middle_initial || ' ' の値が NULL の場合、' ' が文字連結される
+mysql> SELECT first_name || COALESCE(' ' || middle_initial || ' ', ' ') || last_name As full_name FROM Accounts;
++--------------+
+| full_name    |
++--------------+
+| John Smith   |
+| Tom Cat      |
+| Hoge J. Fuga |
+| Piyo R. Foo  |
++--------------+
+4 rows in set (0.06 sec)
+```
