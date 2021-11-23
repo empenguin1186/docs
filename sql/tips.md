@@ -288,3 +288,36 @@ mysql> SELECT first_name || COALESCE(' ' || middle_initial || ' ', ' ') || last_
 +--------------+
 4 rows in set (0.06 sec)
 ```
+
+## プアマンズ・サーチエンジン
+
+テキストの全文検索を LIKE 句や正規表現を使用したパターンマッチで実行する場合には以下のようなデメリットが考えられる。
+1. パターンマッチを行う場合はインデックスを使用できず全ての行をスキャンする必要があるため、パフォーマンスが低下する。
+2. 意図した検索結果を得られない場合がある。例えば、「one」という単語を検索したい場合、「money」や「lonely」といったような単語も検索結果に含まれてしまう。
+したがって検索機能を実装する場合はパターンマッチで行うのではなく、全文検索エンジンを使用する。全文検索エンジンは各データベースによって独自に実装されている。MySQL ではフルテキストインデックスというものを提供している。
+
+```sql
+mysql> CREATE TABLE Bugs(bug_id SERIAL PRIMARY KEY, summary VARCHAR(100) NOT NULL, description VARCHAR(100) NOT NULL);
+Query OK, 0 rows affected (0.69 sec)
+
+-- フルテキストインデックス作成
+mysql> ALTER TABLE Bugs ADD FULLTEXT INDEX bugfts (summary, description);
+Query OK, 0 rows affected, 1 warning (0.68 sec)
+Records: 0  Duplicates: 0  Warnings: 1
+
+mysql> INSERT INTO Bugs (summary, description) VALUES ('crash', 'hoge');
+Query OK, 1 row affected (0.51 sec)
+
+mysql> INSERT INTO Bugs (summary, description) VALUES ('crashed', 'fuga');
+Query OK, 1 row affected (0.01 sec)
+
+-- MATCH 関数で検索を行う
+mysql> SELECT * FROM Bugs WHERE MATCH(summary, description) AGAINST ('crash');
++--------+---------+-------------+
+| bug_id | summary | description |
++--------+---------+-------------+
+|      1 | crash   | hoge        |
++--------+---------+-------------+
+1 row in set (0.20 sec)
+```
+他にも転置インデックスを使用した方法も存在する。
