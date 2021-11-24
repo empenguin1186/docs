@@ -321,3 +321,83 @@ mysql> SELECT * FROM Bugs WHERE MATCH(summary, description) AGAINST ('crash');
 1 row in set (0.20 sec)
 ```
 他にも転置インデックスを使用した方法も存在する。
+
+
+## EAV(エンティティ・アトリビュート・バリュー)
+一つの基底となるデータタイプが存在し、それを継承するサブタイプのデータタイプが複数存在するケースを考える。各サブタイプは基底データタイプに定義されている属性を共通で持つ一方で、各サブタイプ固有で持っている属性も存在する。複数の異なる属性を一律で管理したい場合、以下のようなテーブルを定義する場合がある。
+```sql
+mysql> CREATE TABLE Issues (
+    -> issue_id SERIAL PRIMARY KEY
+    -> );
+Query OK, 0 rows affected (0.19 sec)
+
+mysql> INSERT INTO Issues (issue_id) VALUES (1234);
+Query OK, 1 row affected (0.17 sec)
+
+mysql> CREATE TABLE IssueAttributes (
+    -> issue_id BIGINT UNSIGNED NOT NULL,
+    -> attr_name VARCHAR(100) NOT NULL,
+    -> attr_value VARCHAR(100),
+    -> PRIMARY KEY (issue_id, attr_name),
+    -> FOREIGN KEY (issue_id) REFERENCES Issues(issue_id)
+    -> );
+Query OK, 0 rows affected (0.13 sec)
+
+mysql> INSERT INTO IssueAttributes(issue_id, attr_name, attr_value)
+    -> VALUES
+    -> (1234, 'product', '1'),
+    -> (1234, 'date_reported', '2009-06-01');
+Query OK, 2 rows affected (0.17 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+```
+このような設計は EAV(エンティティ・アトリビュート・バリュー) と呼ばれているが、以下のようなデメリットが存在する。
+1. 一つの列に全ての属性値を格納するため、全て同一のデータ型を採用しなければならず、各属性に適切なデータ型を適用することができない。
+2. 必須属性を定義できない。
+3. 格納する値を制限することができない(参照整合性を強制することができない)。
+4. 一つの列に全ての属性値を格納するため、全ての属性を一つの行に出力させるためには複雑なクエリを記述する必要がある。
+解決策として以下のような設計が考えられる。
+
+|  設計  |  説明  |  使用が望ましいケース  |
+|:--:|:---|:---|
+|  シングルテーブル継承  |  全てのサブタイプの属性を定義している単一のテーブルを作成する  |  サブタイプ数とサブタイプ固有の属性数が少ない場合  |
+|  具象テーブル継承  |  各サブタイプごとにテーブルを作成する  |  全てのサブタイプを跨いだ検索を実行する頻度が低い場合  |
+|  クラステーブル継承  |  基底となるテーブルを定義し、各サブタイプはそれを参照する(後述)  |  全てのサブタイプを跨いだ検索を実行する頻度が高い場合  |
+|  半構造化データ  | 全ての属性を格納する列(LOB列)を定義する  |  サブタイプの数を制限できない場合や、新しい属性を追加する頻度が高い場合  |
+
+クラステーブル継承については以下。ここでは Bugs, FeatureRequests テーブルが Issues テーブルを参照している。
+```sql
+mysql> CREATE TABLE Accounts ( account_id SERIAL PRIMARY KEY, account_name VARCHAR(20) );
+
+mysql> CREATE TABLE Products ( product_id SERIAL PRIMARY KEY, product_name VARCHAR(20) );
+
+mysql> CREATE TABLE Issues ( issue_id SERIAL PRIMARY KEY, reported_by BIGINT UNSIGNED NOT NULL, product_id BIGINT UNSIGNED, priority VARCHAR(20), version_resolved VARCHAR(20), status VARCHAR(20), FOREIGN KEY (reported_by) REFERENCES Accounts(account_id), FOREIGN KEY (product_id) REFERENCES Products(product_id) );
+
+mysql> CREATE TABLE Bugs ( issue_id BIGINT UNSIGNED PRIMARY KEY, severity VARCHAR(20), version_affected VARCHAR(20), FOREIGN KEY (issue_id) REFERENCES Issues(issue_id) );
+
+mysql> CREATE TABLE FeatureRequests ( issue_id BIGINT UNSIGNED PRIMARY KEY, sponsor VARCHAR(50), FOREIGN KEY (issue_id) REFERENCES Issues(issue_id) );
+
+mysql> INSERT INTO Accounts (account_name) VALUES ('Taro');
+
+mysql> INSERT INTO Products (product_name) VALUES ('Product1');
+
+mysql> INSERT INTO Accounts (account_name) VALUES ('Jiro');
+
+mysql> INSERT INTO Issues (reported_by, product_id, priority, version_resolved, status) VALUES (1, 1, 'High', 'version1', 'IN PROGRESS');
+
+mysql> INSERT INTO Bugs (issue_id, severity, version_affected) VALUES (LAST_INSERT_ID(), 'Warn', 'version1');
+
+mysql> INSERT INTO Issues (reported_by, product_id, priority, version_resolved, status) VALUES (2, 1, 'Low', 'version2', 'DONE');
+
+-- LAST_INSERT_ID()　の値はセッションに格納されているので、以下のクエリよりも前に他から Issues に対して INSERT が実行されても LAST_INSERT_ID() の値は変更されない
+mysql> INSERT INTO FeatureRequests (issue_id, sponsor) VALUES (LAST_INSERT_ID(), 'sponsor1');
+
+mysql> SELECT i.*, b.*, f.* FROM Issues As i LEFT OUTER JOIN Bugs AS b USING(issue_id) LEFT OUTER JOIN FeatureRequests AS f USING(issue_id);
+
++----------+-------------+------------+----------+------------------+-------------+----------+----------+------------------+----------+----------+
+| issue_id | reported_by | product_id | priority | version_resolved | status      | issue_id | severity | version_affected | issue_id | sponsor  |
++----------+-------------+------------+----------+------------------+-------------+----------+----------+------------------+----------+----------+
+|        1 |           1 |          1 | High     | version1         | IN PROGRESS |        1 | Warn     | version1         |     NULL | NULL     |
+|        2 |           2 |          1 | Low      | version2         | DONE        |     NULL | NULL     | NULL             |        2 | sponsor1 |
++----------+-------------+------------+----------+------------------+-------------+----------+----------+------------------+----------+----------+
+2 rows in set (0.05 sec)
+```
