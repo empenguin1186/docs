@@ -26,6 +26,12 @@
 - 累積和
 
 ### デザインパターン
+
+#### 資料
+- https://github.com/knsh14/uber-style-guide-ja
+- https://github.com/tmrts/go-patterns
+
+#### 勉強する内容
 - Iterator
 - Adapter
 - Template Method
@@ -49,6 +55,12 @@
 - Proxy
 - Command
 - Interpreter
+
+#### 記事を書く内容
+- そのデザインパターンの概要
+- 実装詳細
+- そのデザインパターンの利点
+- ユースケース
 
 ### サイドプロジェクト
 - ブログ執筆
