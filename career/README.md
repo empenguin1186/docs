@@ -99,3 +99,10 @@
 8. 使って遊ぶ
 9. 役に立つことができるところまで学ぶ
 10. 教える
+
+
+https://www.slideshare.net/takuyaueda967/go-77689475
+
+OSS
+https://github.com/thoas/go-funk
+https://github.com/clipperhouse/gen
