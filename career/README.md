@@ -106,3 +106,7 @@ https://www.slideshare.net/takuyaueda967/go-77689475
 OSS
 https://github.com/thoas/go-funk
 https://github.com/clipperhouse/gen
+
+
+https://gpl-reading.connpass.com/event/235964/
+https://www.oreilly.co.jp/books/9784873118468/
