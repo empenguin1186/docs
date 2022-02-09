@@ -110,3 +110,18 @@ https://github.com/clipperhouse/gen
 
 https://gpl-reading.connpass.com/event/235964/
 https://www.oreilly.co.jp/books/9784873118468/
+
+
+https://postd.cc/tag/software-architecture
+
+
+## 気になったこと
+- Datadog
+- terraform
+- GraphQL
+- Grpc
+- Google CloudRun
+- 
+
+勉強法
+https://rakus.connpass.com/event/236307/
