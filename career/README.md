@@ -111,7 +111,6 @@ https://github.com/clipperhouse/gen
 https://gpl-reading.connpass.com/event/235964/
 https://www.oreilly.co.jp/books/9784873118468/
 
-
 https://postd.cc/tag/software-architecture
 
 
@@ -125,3 +124,10 @@ https://postd.cc/tag/software-architecture
 
 勉強法
 https://rakus.connpass.com/event/236307/
+
+
+ソフトウェアアーキテクチャ
+https://www.oreilly.co.jp/editors/archives/2022/02/1982_fundamentals_software_arch.html
+https://javaee-study.connpass.com/event/239574/
+
+https://zenn.dev/dowanna6/articles/9f567f95dfcf0c
