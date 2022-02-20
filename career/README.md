@@ -120,7 +120,18 @@ https://postd.cc/tag/software-architecture
 - GraphQL
 - Grpc
 - Google CloudRun
-- 
+- lstio
+- サプライチェーン
+- Kubernetes の DNS の解決に失敗 -> NIC の設定の不備でパケットロスが発生.
+- NewSQL(RDBのACID特性 + NoSQLのスケーラビリティの容易性を兼ね備えたDB)
+  - 種類
+    - dynamoDB(Amazon)
+    - cosmosDB(Azure)
+    - CloudSpanner(Google)
+  - メリット
+    - Acid による安全性
+    - 保守性
+    - NoSQLによる拡張性
 
 勉強法
 https://rakus.connpass.com/event/236307/
@@ -131,3 +142,11 @@ https://www.oreilly.co.jp/editors/archives/2022/02/1982_fundamentals_software_ar
 https://javaee-study.connpass.com/event/239574/
 
 https://zenn.dev/dowanna6/articles/9f567f95dfcf0c
+
+DDD
+https://zenn.dev/suzuki_hoge/articles/2021-02-ddd-poem-9f509fa2cc9e6b12540f
+
+言語
+
+プロダクトエンジニア
+1 on 1 
