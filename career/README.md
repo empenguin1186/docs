@@ -85,8 +85,11 @@
 ## 基本的なスキルセット(上にきているものほど優先度は高い)
 - アルゴリズムとデータ構造 -> 最終的に水色Coderを目指す。当面の目標は緑Coderを目指す
 - アーキテクチャ -> https://github.com/donnemartin/system-design-primer/blob/master/README-ja.md
+  - ソフトウェアアーキテクチャの基礎
 - データベース -> 上記のアーキテクチャの資料に関連した知識を身につける
 - コーディングスキル -> Code Complete
+- DDD
+- マーケティング、企画系の知識
 
 ## 学びを効率化するためのステップ
 1. 技術の全体像を把握する
@@ -150,3 +153,5 @@ https://zenn.dev/suzuki_hoge/articles/2021-02-ddd-poem-9f509fa2cc9e6b12540f
 
 プロダクトエンジニア
 1 on 1 
+
+
