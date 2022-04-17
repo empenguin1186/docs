@@ -1,3 +1,10 @@
+
+# VPC 移行における MAZ DB について
+- DB インスタンスが MAZ である場合、VPC の変更は不可能。一旦 シングルAZに変換し、VPC 移行を行った後、MAZ に戻す必要がある。DB サブネットグループを MAZ 構成に変更することは不可能。したがって Amazon Aurora の VPC を変更することはできない。したがって Aurora を使用する場合は DB のクローンかスナップショットからの復元を行うことでVPC移行を行う。
+  - https://aws.amazon.com/jp/premiumsupport/knowledge-center/change-vpc-rds-db-instance/
+  - https://aws.amazon.com/jp/premiumsupport/knowledge-center/rds-vpc-aurora-cluster/
+  - https://dev.classmethod.jp/articles/amazon-aurora-database-cloning/
+
 - リンク
   - RDS (Relational Database Service)
     - https://aws.amazon.com/jp/rds/
