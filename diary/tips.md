@@ -1292,3 +1292,6 @@ curl -so /dev/nul -w "time_total: %{time_total}\n" https://www.google.com/
 ```sh
 {{ $alert := index .Alerts 0 }} ({{ .Status }}) HOGE ({{ if eq $alert.Labels.namespace "" -}}Kubernetes{{- else -}}{{ $alert.Labels.namespace }}{{- end }}) {{ $alert.Labels.severity }} - SERVER TROUBLE REPORT
 ```
+
+# ER図におけるカーディナリティについて
+- カーディナリティについては、左側の記号は下限、右側の記号は上限を表す。例えば `-|-...-o-|-` という記号に関しては、下限が0で上限が1となるので、一対0もしくは1の関係であることを示す。
